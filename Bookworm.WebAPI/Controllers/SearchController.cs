@@ -4,11 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using RestSharp;
+using NSwag.Annotations;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace Bookworm.WebAPI.Controllers;
 
+using System.Net;
 using System.Text.Json;
 using Models;
 
@@ -29,11 +31,22 @@ public class SearchController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery]string q, [FromQuery]int? offset, [FromQuery]int? limit)
+    [OpenApiOperation("GetSearchResults", "Search")]
+    [OpenApiTag("Search")]
+    [SwaggerResponse(HttpStatusCode.OK, typeof(SearchResponse), Description = "Successfully retrieved results.")]
+    [SwaggerResponse(HttpStatusCode.BadRequest, typeof(void), Description = "The input is invalid.")]
+    [SwaggerResponse(HttpStatusCode.InternalServerError, typeof(void), Description = "An error occurred while processing your request.")]
+
+    /// <param name="query">The search query.</param>
+    /// <param name="offset">The offset for pagination.</param>
+    /// <param name="limit">The limit for pagination.</param>
+    /// <returns>Returns search results based on the query.</returns>
+    
+    public async Task<IActionResult> SearchForWorks([FromQuery]string query, [FromQuery]int? offset, [FromQuery]int? limit)
     {
         // Create request
         var request = new RestRequest("search.json");
-        request.AddParameter("q", q);
+        request.AddParameter("q", query);
         request.AddParameter("fields", "key,cover_i,title,author_name,name");
         request.AddParameter("mode", "everything");
 

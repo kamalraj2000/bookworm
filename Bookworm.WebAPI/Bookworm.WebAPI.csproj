@@ -8,10 +8,19 @@
 
   <PropertyGroup Condition=" '$(RunConfiguration)' == 'https' " />
   <PropertyGroup Condition=" '$(RunConfiguration)' == 'http' " />
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\net7.0\Bookworm.WebAPI.xml</DocumentationFile>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.5" />
     <PackageReference Include="RestSharp" Version="110.2.0" />
     <PackageReference Include="NSwag.AspNetCore" Version="13.20.0" />
+    <PackageReference Include="NSwag.MSBuild" Version="13.20.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NSwag.CodeGeneration.TypeScript" Version="13.20.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,4 +29,7 @@
   <ItemGroup>
     <Folder Include="Models\" />
   </ItemGroup>
+  <Target Name="PostBuild" BeforeTargets="AfterBuild" Condition="'$(DisableNSwag)' != 'true'">
+    <Exec ContinueOnError="true" WorkingDirectory="$(ProjectDir)" Command="$(NSwagExe_Net70) run nswag.react.json /variables:Configuration=$(Configuration),OutDir=$(OutDir) /runtime:Net70" />
+  </Target>
 </Project>
