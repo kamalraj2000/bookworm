@@ -29,13 +29,23 @@ public class SearchController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Get([FromQuery]string q)
+    public async Task<IActionResult> Get([FromQuery]string q, [FromQuery]int? offset, [FromQuery]int? limit)
     {
         // Create request
         var request = new RestRequest("search.json");
         request.AddParameter("q", q);
         request.AddParameter("fields", "key,cover_i,title,author_name,name");
         request.AddParameter("mode", "everything");
+
+        if (offset.HasValue)
+        {
+            request.AddParameter("offset", offset.ToString());
+        }
+
+        if (limit.HasValue)
+        {
+            request.AddParameter("limit", limit.ToString());
+        }    
 
         // Add accept header 
         request.AddHeader("Accept", "application/json");
@@ -45,14 +55,22 @@ public class SearchController : ControllerBase
 
         if (!response.IsSuccessful || string.IsNullOrWhiteSpace(response.Content))
         {
-            // Should let the client know that something wen wrong
-            return new StatusCodeResult(500);
+            logger.LogError($"Search API call to OpenLibrary failed: {response.StatusDescription ?? response.StatusCode.ToString()}");
+            return new StatusCodeResult(((int)response.StatusCode));
         }
 
         // Process response
-        var searchResponse = JsonSerializer.Deserialize<SearchResponse>(response.Content);
 
-        return new OkObjectResult(searchResponse);
+        try
+        {
+            var searchResponse = JsonSerializer.Deserialize<SearchResponse>(response.Content);
+            return new OkObjectResult(searchResponse);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed to deserialize response from search API: {response.Content}");
+            return new StatusCodeResult(500);
+        }
     }
 }
 
