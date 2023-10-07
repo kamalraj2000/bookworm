@@ -8,22 +8,14 @@
 /* eslint-disable */
 // ReSharper disable InconsistentNaming
 
-import axios, { AxiosError } from 'axios';
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelToken } from 'axios';
-
-export class SearchClient extends BookwormApiBase {
-    private instance: AxiosInstance;
+export class SearchClient {
+    private http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
     private baseUrl: string;
     protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
 
-    constructor(configuration: IBookwormApiConfig, baseUrl?: string, instance?: AxiosInstance) {
-
-        super(configuration);
-
-        this.instance = instance ? instance : axios.create();
-
+    constructor(baseUrl?: string, http?: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> }) {
+        this.http = http ? http : window as any;
         this.baseUrl = baseUrl !== undefined && baseUrl !== null ? baseUrl : "";
-
     }
 
     /**
@@ -33,7 +25,7 @@ export class SearchClient extends BookwormApiBase {
      * @param limit (optional) 
      * @return Successfully retrieved results.
      */
-    searchForWorks(query: string | undefined, offset: number | null | undefined, limit: number | null | undefined, cancelToken?: CancelToken | undefined): Promise<BookwormResponse<SearchResponse>> {
+    searchForWorks(query: string | undefined, offset: number | null | undefined, limit: number | null | undefined): Promise<BookwormResponse<SearchResponse>> {
         let url_ = this.baseUrl + "/api/Search?";
         if (query === null)
             throw new Error("The parameter 'query' cannot be null.");
@@ -45,56 +37,40 @@ export class SearchClient extends BookwormApiBase {
             url_ += "limit=" + encodeURIComponent("" + limit) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
-        let options_: AxiosRequestConfig = {
+        let options_: RequestInit = {
             method: "GET",
-            url: url_,
             headers: {
                 "Accept": "application/json"
-            },
-            cancelToken
+            }
         };
 
-        return this.transformOptions(options_).then(transformedOptions_ => {
-            return this.instance.request(transformedOptions_);
-        }).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
+        return this.http.fetch(url_, options_).then((_response: Response) => {
             return this.processSearchForWorks(_response);
         });
     }
 
-    protected processSearchForWorks(response: AxiosResponse): Promise<BookwormResponse<SearchResponse>> {
+    protected processSearchForWorks(response: Response): Promise<BookwormResponse<SearchResponse>> {
         const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (let k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
-            const _responseText = response.data;
+            return response.text().then((_responseText) => {
             let result200: any = null;
-            let resultData200  = _responseText;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = SearchResponse.fromJS(resultData200);
-            return Promise.resolve<BookwormResponse<SearchResponse>>(new BookwormResponse<SearchResponse>(status, _headers, result200));
-
+            return new BookwormResponse(status, _headers, result200);
+            });
         } else if (status === 400) {
-            const _responseText = response.data;
+            return response.text().then((_responseText) => {
             return throwException("The input is invalid.", status, _responseText, _headers);
-
+            });
         } else if (status === 500) {
-            const _responseText = response.data;
+            return response.text().then((_responseText) => {
             return throwException("An error occurred while processing your request.", status, _responseText, _headers);
-
+            });
         } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
+            return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
         }
         return Promise.resolve<BookwormResponse<SearchResponse>>(new BookwormResponse(status, _headers, null as any));
     }
@@ -262,8 +238,4 @@ function throwException(message: string, status: number, response: string, heade
         throw result;
     else
         throw new BookwormApiException(message, status, response, headers, null);
-}
-
-function isAxiosError(obj: any | undefined): obj is AxiosError {
-    return obj && obj.isAxiosError === true;
 }
