@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IRestClient>(sp => new RestClient("https://openlibrary.org"));
 builder.Services.AddControllers();
+builder.Services.AddCors();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
@@ -27,6 +29,11 @@ if (app.Environment.IsDevelopment())
     app.UseOpenApi();  // Serves the OpenAPI specification
     app.UseSwaggerUi3(); // Serves the Swagger UI
 }
+
+app.UseCors(policy =>
+    policy.AllowAnyOrigin()
+          .AllowAnyHeader()
+          .AllowAnyMethod());
 
 app.UseHttpsRedirection();
 

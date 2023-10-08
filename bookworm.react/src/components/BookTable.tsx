@@ -1,22 +1,12 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import { Table, Button } from 'react-bootstrap';
+import { IWork } from '../clients/bookworm.client';
 
-const books = [
-  {
-    title: "To Kill a Mockingbird",
-    author: "Harper Lee",
-    link: "https://example.com/to-kill-a-mockingbird"
-  },
-  {
-    title: "1984",
-    author: "George Orwell",
-    link: "https://example.com/1984"
-  },
-  // ... add more books as needed
-];
+type BookTableProps = {
+  books: IWork[]
+}
 
-const BookTable = () => {
+const BookTable = ({books}: BookTableProps) => {
   return (
     <Table striped bordered hover>
       <thead>
@@ -30,9 +20,9 @@ const BookTable = () => {
         {books.map((book, index) => (
           <tr key={index}>
             <td>{book.title}</td>
-            <td>{book.author}</td>
+            <td>{book.author_name?.[0] ?? ""}</td>
             <td>
-              <Button variant="link" href={book.link} target="_blank" rel="noopener noreferrer">
+              <Button variant="link" href={"https://openlibrary.org/" + book.key} target="_blank" rel="noopener noreferrer">
                 View Book
               </Button>
             </td>
@@ -42,9 +32,5 @@ const BookTable = () => {
     </Table>
   );
 }
-
-// BookTable.propTypes = {
-//   books: PropTypes.array.isRequired
-// };
 
 export default BookTable;
