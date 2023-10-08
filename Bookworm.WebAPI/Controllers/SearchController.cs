@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 using RestSharp;
 using NSwag.Annotations;
 
@@ -20,14 +17,17 @@ public class SearchController : ControllerBase
 {
     private readonly IRestClient restClient;
     private readonly ILogger<SearchController> logger;
+    private readonly IDistributedCache cache;
 
     public SearchController(
         IRestClient restClient,
-        ILogger<SearchController> logger
+        ILogger<SearchController> logger,
+        IDistributedCache cache
         )
     {
         this.restClient = restClient;
         this.logger = logger;
+        this.cache = cache;
     }
 
     [HttpGet]
@@ -44,6 +44,20 @@ public class SearchController : ControllerBase
     
     public async Task<IActionResult> SearchForWorks([FromQuery]string query, [FromQuery]int? offset, [FromQuery]int? limit)
     {
+        var cacheKey = $"Search:{query}:{offset}:{limit}";
+
+        // Try getting the data from cache first
+        var cachedResponse = await cache.GetStringAsync(cacheKey);
+
+        if (!string.IsNullOrEmpty(cachedResponse))
+        {
+            logger.LogInformation($"Cache HIT: {cacheKey}");
+            var cachedData = JsonSerializer.Deserialize<SearchResponse>(cachedResponse);
+            return new OkObjectResult(cachedData);
+        }
+
+        logger.LogInformation($"Cache MISS: {cacheKey}");
+
         // Create request
         var request = new RestRequest("search.json");
         request.AddParameter("q", query);
@@ -69,6 +83,10 @@ public class SearchController : ControllerBase
         if (!response.IsSuccessful || string.IsNullOrWhiteSpace(response.Content))
         {
             logger.LogError($"Search API call to OpenLibrary failed: {response.StatusDescription ?? response.StatusCode.ToString()}");
+            if(!string.IsNullOrWhiteSpace(response.Content))
+            {
+                logger.LogError(response.Content);
+            }
             return new StatusCodeResult(((int)response.StatusCode));
         }
 
@@ -77,6 +95,15 @@ public class SearchController : ControllerBase
         try
         {
             var searchResponse = JsonSerializer.Deserialize<SearchResponse>(response.Content);
+
+            // Cache the result
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(2)
+            };
+            await cache.SetStringAsync(cacheKey, response.Content, cacheOptions);
+
+
             return new OkObjectResult(searchResponse);
         }
         catch (Exception ex)
