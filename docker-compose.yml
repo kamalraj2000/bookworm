@@ -1,14 +1,47 @@
 version: '3.4'
 
+volumes:
+  mssql-azuresql-edge-data:
+  mssql-azuresql-edge-ext:
+  mssql-azuresql-edge-ext-data:
+  mssql-azuresql-edge-ext-log:
+  redis-data:
+
 services:
+  sql-server:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    ports:
+      - 1433:1433
+    volumes:
+      - "mssql-azuresql-edge-data:/var/opt/mssql"
+      - "mssql-azuresql-edge-ext:/var/opt/mssql-extensibility"
+      - "mssql-azuresql-edge-ext-data:/var/opt/mssql-extensibility/data"
+      - "mssql-azuresql-edge-ext-log:/var/opt/mssql-extensibility/log"
+    environment:
+      - ACCEPT_EULA=1
+      - MSSQL_SA_PASSWORD=MyPass@word
+      - MSSQL_PID=Developer
+      - MSSQL_USER=SA
+
+  redis:
+    image: redis:latest
+    volumes:
+      - "redis-data:/data"
+
   backend:
     image: bookworm-api
     build:
       context: Bookworm.WebAPI
     ports:
       - 3000:80
-    environment:
+    environment: 
       - ASPNETCORE_ENVIRONMENT=Development
+      - Cache__Provider=Redis
+      - ConnectionStrings__RedisConnection=redis:6379
+      - ConnectionStrings__CacheDbConnection=Server=sql-server;Initial Catalog=DistCache;User ID=SA;Password=MyPass@word;TrustServerCertificate=True
+    depends_on:
+      - sql-server
+      - redis
 
   frontend:
     image: bookworm-react

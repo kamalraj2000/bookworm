@@ -1,11 +1,34 @@
-﻿using Microsoft.AspNetCore.HttpLogging;
-using RestSharp;
-
+﻿using RestSharp;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Read cache provider from configuration
+var cacheProvider = builder.Configuration.GetValue<string>("Cache:Provider");
 
-// Add services to the container.
+switch (cacheProvider)
+{
+    
+    case "SQL":
+        // Add SQL distributed cache. Ensure you have the necessary package and connection string.
+        builder.Services.AddDistributedSqlServerCache(options =>
+        {
+            options.ConnectionString = builder.Configuration.GetConnectionString("CacheDbConnection");
+            options.SchemaName = "dbo";
+            options.TableName = "BookCache";
+        });
+        break;
+    case "Redis":
+        // Add Redis cache. Ensure you have the necessary package and connection string.
+        builder.Services.AddDistributedRedisCache(options =>
+        {
+            options.Configuration = builder.Configuration.GetConnectionString("RedisConnection");
+        });
+        break;
+    case "Memory":
+    default:
+        builder.Services.AddDistributedMemoryCache();
+        break;
+}
 
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IRestClient>(sp => new RestClient("https://openlibrary.org"));
@@ -23,14 +46,7 @@ builder.Services.AddOpenApiDocument(config =>
     config.Version = "v1";
 });
 
-builder.Services.AddHttpLogging(logging =>
-{
-    logging.LoggingFields = HttpLoggingFields.All;
-});
-
 var app = builder.Build();
-
-app.UseHttpLogging();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
