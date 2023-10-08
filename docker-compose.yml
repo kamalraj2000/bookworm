@@ -1,0 +1,20 @@
+version: '3.4'
+
+services:
+  backend:
+    image: bookworm-api
+    build:
+      context: Bookworm.WebAPI
+    ports:
+      - 3000:80
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  frontend:
+    image: bookworm-react
+    build:
+      context: bookworm.react
+    ports:
+      - 4000:80
+    depends_on:
+      - backend

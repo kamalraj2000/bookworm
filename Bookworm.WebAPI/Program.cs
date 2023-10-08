@@ -35,8 +35,6 @@ app.UseCors(policy =>
           .AllowAnyHeader()
           .AllowAnyMethod());
 
-app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();

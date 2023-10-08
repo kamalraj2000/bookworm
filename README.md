@@ -1,0 +1,48 @@
+# Bookworm Web Application
+
+## Overview
+Bookworm is a simple web-based application that interfaces with the OpenLibrary Search API, allowing users to search for books by titles. The results are presented in a paginated table format. While it provides a convenient interface for users, it also ensures efficient utilization of resources by incorporating a caching mechanism.
+
+## Problem Statement
+Searching for books can often be tedious due to the vast number of options available. Users require a streamlined, intuitive interface to quickly search and view book titles. Furthermore, making repeated calls to external APIs can be resource-intensive and could also be limited by API rate limits.
+
+## Solution
+Bookworm addresses these problems by:
+
+Providing a user-friendly interface built with React.
+Utilizing an ASP.Net Core Web API backend that acts as an intermediary between the frontend and the OpenLibrary Search API.
+Implementing a caching mechanism in the backend to minimize direct API calls to OpenLibrary, thus ensuring faster response times and minimizing potential rate-limiting issues.
+
+## Components
+- **Frontend (React App)**: User interface for inputting search queries and viewing paginated results.
+- **Backend (ASP.Net Core Web API)**: Handles the business logic, interfaces with the OpenLibrary API, and manages the caching mechanism.
+- **OpenLibrary Search API**: External API for fetching book data based on user queries.
+- **Cache**: Temporarily stores book data fetched from OpenLibrary to minimize redundant calls.
+
+```mermaid
+sequenceDiagram
+    User->>Frontend: Enter book title
+    Frontend->>Backend: Send search request
+    Backend->>Cache: Check if data exists
+    Cache-->>Backend: Return cached data (if exists)
+    Backend->>OpenLibrary Search API: Fetch data (if not cached)
+    OpenLibrary Search API-->>Backend: Return book data
+    Backend->>Cache: Store fetched data (if not already cached)
+    Backend-->>Frontend: Send book data
+    Frontend-->>User: Display paginated results
+```
+
+## Dependencies
+- **OpenLibrary Search API**: The primary data source for the book information.
+- **React**: For building the frontend application.
+- **Bootstrap**: For providing a CSS framework to build responsive web applications.
+- **React-Bootstrap**: Provides React controls that wrap underlying bootstrap constructs.
+- **ASP.Net Core Web API**: For backend logic and server hosting.
+- **NSwag**: For generating OpenAPI specifications, API browser and typesafe client libraries
+- **Cache Library/Implementation**: Depending on what you've used for caching, like MemoryCache, Redis, etc.
+
+## Constraints
+- **Rate Limiting**: Dependence on the OpenLibrary API might mean we are constrained by their rate limits.
+- **Cache Storage Limit**: The cache size might be limited, and we'll need to employ strategies to handle evictions or decide the retention period for cached data.
+- **Latency**: While the cache reduces latency, initial or cache-miss requests to OpenLibrary might introduce delay.
+
