@@ -13,7 +13,7 @@ const BookTable = ({books}: BookTableProps) => {
         <tr>
           <th>Book Title</th>
           <th>Author</th>
-          <th>Link to Book</th>
+          <th>Link to Open Library Page</th>
         </tr>
       </thead>
       <tbody>
@@ -23,7 +23,7 @@ const BookTable = ({books}: BookTableProps) => {
             <td>{book.author_name?.[0] ?? ""}</td>
             <td>
               <Button variant="link" href={"https://openlibrary.org/" + book.key} target="_blank" rel="noopener noreferrer">
-                View Book
+                Go to Book Page
               </Button>
             </td>
           </tr>
